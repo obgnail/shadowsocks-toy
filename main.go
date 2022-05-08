@@ -6,6 +6,7 @@ import (
 	"github.com/obgnail/shadowsocks-toy/cipher"
 	"github.com/obgnail/shadowsocks-toy/client"
 	_ "github.com/obgnail/shadowsocks-toy/logger"
+	"github.com/obgnail/shadowsocks-toy/ruleset"
 	"github.com/obgnail/shadowsocks-toy/server"
 	log "github.com/sirupsen/logrus"
 	"os/exec"
@@ -33,7 +34,8 @@ func main() {
 		startChrome()
 	}()
 
-	clt, err := client.New(ClientListenAddr, ServerListenAddr, cph)
+	//clt, err := client.New(ClientListenAddr, ServerListenAddr, cph, &ruleset.Direct{})
+	clt, err := client.New(ClientListenAddr, ServerListenAddr, cph,  &ruleset.Global{})
 	if err != nil {
 		log.Fatal("new client err", err)
 	}
@@ -56,7 +58,7 @@ func startChrome() {
 	if err != nil {
 		log.Fatal("err:", err)
 	}
-	fmt.Println(string(data[:100]),"\n...")
+	fmt.Println(string(data[:600]), "\n...")
 }
 
 func startServer(server *server.Server) {

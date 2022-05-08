@@ -14,8 +14,7 @@ const (
 )
 
 func main() {
-	cph := cipher.NewBase64Cipher()
-	//cph := cipher.NewNopCipher()
+	cph := cipher.NewNopCipher()
 
 	srv, err := server.New(ServerListenAddr, cph)
 	if err != nil {

@@ -7,6 +7,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"net"
+	"strings"
+)
+
+const (
+	UseClosedConnErr   = "use of closed network connection"
+	ConnResetByPeerErr = "connection reset by peer"
 )
 
 var recoverableNetError = errors.New("recoverable net error")
@@ -27,7 +33,7 @@ func NewSecureSocket(conn net.Conn, cipher cipher.Cipher) *SecureSocket {
 	return ss
 }
 
-func (ss *SecureSocket) GetConn() net.Conn {
+func (ss *SecureSocket) Hijack() net.Conn {
 	return ss.Conn
 }
 
@@ -141,7 +147,7 @@ func Tunnel(cipher, plain *SecureSocket) error {
 		defer from.Close()
 		if err := cipherFunc(from, to); err != nil {
 			if err == recoverableNetError {
-				log.Debug(errors.Trace(err))
+				//log.Debug(errors.Trace(err))
 			} else {
 				errChan <- errors.Trace(err)
 			}
@@ -155,12 +161,13 @@ func Tunnel(cipher, plain *SecureSocket) error {
 }
 
 // join two conn, block until error occurs
-func Copy(c1, c2 *SecureSocket) error {
+func Copy(c1, c2 net.Conn) error {
 	errChan := make(chan error, 2)
-	pipe := func(to, from *SecureSocket) {
-		defer to.Close()
-		defer from.Close()
-		_, err := io.Copy(to.Conn, from.Conn)
+	pipe := func(c1, c2 net.Conn) {
+		defer c1.Close()
+		defer c2.Close()
+		_, err := io.Copy(c1, c2)
+		err = ignoreNetError(err)
 		if err != nil {
 			errChan <- errors.Trace(err)
 		}
@@ -172,11 +179,35 @@ func Copy(c1, c2 *SecureSocket) error {
 }
 
 func handlerNetError(err error) error {
+	if err == nil {
+		return nil
+	}
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		return recoverableNetError
 	}
-	if e, ok := err.(*net.OpError); ok && e.Err.Error() == "use of closed network connection" {
+	if e, ok := err.(*net.OpError); ok && strings.Contains(e.Err.Error(), UseClosedConnErr) {
 		return recoverableNetError
+	}
+	if strings.Contains(err.Error(), ConnResetByPeerErr) {
+		log.Warn(err)
+		return nil
+	}
+	return errors.Trace(err)
+}
+
+func ignoreNetError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil
+	}
+	if e, ok := err.(*net.OpError); ok && strings.Contains(e.Err.Error(), UseClosedConnErr) {
+		return nil
+	}
+	if strings.Contains(err.Error(), ConnResetByPeerErr) {
+		log.Warn(err)
+		return nil
 	}
 	return errors.Trace(err)
 }

@@ -29,4 +29,5 @@ func init() {
 	customFormatter.DisableColors = false                       // 禁止颜色显示
 
 	log.SetFormatter(customFormatter)
+	log.SetLevel(log.DebugLevel)
 }

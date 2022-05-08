@@ -6,6 +6,7 @@ import (
 	"github.com/obgnail/shadowsocks-toy/cipher"
 	"github.com/obgnail/shadowsocks-toy/client"
 	_ "github.com/obgnail/shadowsocks-toy/logger"
+	"github.com/obgnail/shadowsocks-toy/ruleset"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
@@ -18,10 +19,10 @@ const (
 )
 
 func main() {
-	//cph := cipher.NewBase64Cipher()
 	cph := cipher.NewNopCipher()
 
-	clt, err := client.New(ClientListenAddr, ServerListenAddr, cph)
+	clt, err := client.New(ClientListenAddr, ServerListenAddr, cph,&ruleset.Direct{})
+	//clt, err := client.New(ClientListenAddr, ServerListenAddr, cph,&ruleset.Global{})
 	if err != nil {
 		log.Fatal("new client err", err)
 	}
@@ -54,5 +55,5 @@ func startChrome() {
 		log.Fatal("err:", err)
 		os.Exit(1)
 	}
-	fmt.Println(string(data))
+	fmt.Println(string(data[:600]))
 }
